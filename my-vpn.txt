@@ -1,0 +1,66 @@
+aaa authorization network vpn-group local 
+aaa authentication login vpn-group local
+
+username abc privilege 15 secret 5 myexample-pass
+
+
+crypto isakmp policy 100
+ encr 3des
+ authentication pre-share
+ group 2  
+crypto isakmp keepalive 10 periodic
+crypto isakmp nat keepalive 15
+!         
+crypto isakmp client configuration group netadmin
+ key my-example-key  
+ dns 10.10.99.10 10.10.99.11
+ domain vpn.local
+ pool vpn-pool
+ save-password
+ max-logins 5
+ netmask 255.255.255.0
+!         
+!         
+crypto ipsec transform-set netadmin-vpn-transform esp-3des esp-sha-hmac 
+ mode tunnel
+!         
+!         
+!         
+crypto dynamic-map dynamic-netadmin-vpn 10
+ set transform-set netadmin-vpn-transform 
+ reverse-route
+!         
+
+
+crypto map netadmin-vpn-map client authentication list vpn-group
+crypto map netadmin-vpn-map isakmp authorization list vpn-group
+crypto map netadmin-vpn-map client configuration address respond
+crypto map netadmin-vpn-map 10 ipsec-isakmp dynamic dynamic-netadmin-vpn 
+
+
+
+!         
+interface GigabitEthernet0/0
+ ip address 131.111.11.11 255.255.255.224
+ ip nat outside
+ ip virtual-reassembly in
+ ip policy route-map Route-to-PaOTiK
+ duplex auto
+ speed auto
+ media-type rj45
+ crypto map netadmin-vpn-map
+!
+
+ip local pool vpn-pool 10.10.55.10 10.10.55.30
+
+!         
+ip access-list extended Route-to-PaOTiK
+ permit ip 10.10.55.0 0.0.0.255 any
+!
+
+!         
+route-map Route-to-PaOTiK permit 10
+ match ip address Route-to-PaOTiK
+ set ip next-hop 10.10.77.2
+! 
+
